@@ -15,6 +15,24 @@ public class ItemSet {
         items.add(item);
     }
 
+    public ItemSet minusItemSet (ItemSet itemSet) {
+        ItemSet newItemSet = new ItemSet();
+        for (int curItem : items) {
+            if (!itemSet.contains(curItem)) {
+                newItemSet.addItem(curItem);
+            }
+        }
+        return newItemSet;
+    }
+
+    public void removeItemSet(ItemSet itemSet) {
+        for (int curItem : itemSet.getSet()) {
+            if (items.contains(curItem)) {
+                items.remove(curItem);
+            }
+        }
+    }
+
     public ItemSet() {}
 
     public ItemSet(Set itemSet) {
@@ -63,5 +81,10 @@ public class ItemSet {
     @Override
     public String toString() {
         return items.toString();
+    }
+
+    @Override
+    public boolean equals(Object other) {
+        return this.getSet().equals(((ItemSet)other).getSet());
     }
 }

@@ -16,8 +16,14 @@ public class Lab5 {
     public static void main(String[] args) throws FileNotFoundException {
         process("./src/files/shopping_data.csv");
         findFrequentSingleItemSets();
-        System.out.println(frequentItemSet.get(1).size());
-        System.out.println(joinFrequentItemSets(2).toString());
+        ArrayList<ItemSet> curFrequentItemSets = new ArrayList<>();
+        int k = 2;
+        do {
+            ArrayList<ItemSet> possibleFrequentSets = joinFrequentItemSets(k++);
+            curFrequentItemSets = findFrequentItemSets(possibleFrequentSets);
+        } while (!curFrequentItemSets.isEmpty());
+
+        System.out.println(frequentItemSet.toString());
     }
 
     public static void process(String fileName) throws FileNotFoundException {
@@ -59,15 +65,23 @@ public class Lab5 {
             while (iter.hasNext()) {
                 int curItem = iter.next();
 
-                if (itemCounts.containsKey(curItem))
-                    count = itemCounts.get(curItem);
-                else
-                    count = 0;
-
-                if (++count >= numRequired)
-                    frequentSingleItemSets.add(curItemSet);
+                if (itemCounts.containsKey(curItem)) {
+                    count = itemCounts.get(curItem) + 1;
+                }
+                else {
+                    count = 1;
+                }
 
                 itemCounts.put(curItem, count);
+            }
+        }
+
+        // Add to frequent single itemsets if item occurs enough to be considered frequent
+        for (Map.Entry<Integer, Integer> entry : itemCounts.entrySet()) {
+            if (entry.getValue() >= numRequired) {
+                ItemSet curItemSet = new ItemSet();
+                curItemSet.addItem(entry.getKey());
+                frequentSingleItemSets.add(curItemSet);
             }
         }
 
@@ -100,67 +114,56 @@ public class Lab5 {
         }
 
         ArrayList<ItemSet> possibleFrequentItemSets = new ArrayList<>();
+        int numRequired = (int)Math.ceil((Math.pow(k-1, 2) + (k-1))/2.0);
         // Iterate through all size k joined sets, checking counts
         for (Map.Entry<Set, Integer> entry : itemSetOccurences.entrySet()) {
             // If this sets count is the expected for a frequent set of size k
-            if (entry.getValue() >= (k-1)*2) {
+            if (entry.getValue() >= numRequired) {
                 possibleFrequentItemSets.add(new ItemSet(entry.getKey()));
             }
         }
 
-        for (ItemSet set : possibleFrequentItemSets)
-            System.out.println(set.toString());
-
         return possibleFrequentItemSets;
     }
 
-    private static ArrayList<ItemSet> findFrequentItemSets(ArrayList<ItemSet> possibleItemSets, int k) {
-        for (ItemSet curItemSet : possibleItemSets) {
-            isFrequent(curItemSet);
+    private static ArrayList<ItemSet> findFrequentItemSets(ArrayList<ItemSet> possibleItemSets) {
+        // Initialize hashmap to counts occurrences of all the possible item sets
+        HashMap<Set, Integer> possibleItemCounts = new HashMap<>();
+        int count, k;
+
+        // Get size k of next level of item sets or end if no possible sets
+        if (!possibleItemSets.isEmpty()) {
+            k = possibleItemSets.get(0).size();
         }
-        return null;
-    }
-/*
-    public static ArrayList<ItemSet> possibleCombinations(int k) {
-        // get all possible individual items from the k-1 frequent item set
-        HashSet<Integer> possibleItemsSet = new HashSet<>();
-        for (ItemSet curItemSet : frequentItemSet.get(k-1)) {
-            Iterator iter = curItemSet.iterator();
-            while (iter.hasNext()) {
-                possibleItemsSet.add((Integer)iter.next());
+        else {
+            return new ArrayList<>();
+        }
+
+        for (ItemSet curItemSet : transactions) {
+            for (ItemSet curPossibleItemSet : possibleItemSets) {
+                // If the current item set contains the possible item set, inc its count
+                if (curItemSet.contains(curPossibleItemSet)) {
+                    if (possibleItemCounts.containsKey(curPossibleItemSet.getSet())) {
+                        count = possibleItemCounts.get(curPossibleItemSet.getSet()) + 1;
+                    }
+                    else {
+                        count = 1;
+                    }
+                    possibleItemCounts.put(curPossibleItemSet.getSet(), count);
+                }
             }
         }
 
-        // generate all possible combinations of size k from the possible items set
-        ArrayList<ItemSet> possibleCombinations = new ArrayList<>();
-        for (Set curSet : powerSet(possibleItemsSet, k)) {
-            if (curSet.size() == k) {
-                possibleCombinations.add(new ItemSet(curSet));
+        // Number of occurrences an item set needs to be considered frequent
+        int frequentCount = (int)Math.ceil(minsup*transactions.size());
+        ArrayList<ItemSet> frequentItemSets = new ArrayList<>();
+        for (Map.Entry<Set, Integer> entry : possibleItemCounts.entrySet()) {
+            if (entry.getValue() >= frequentCount) {
+                frequentItemSets.add(new ItemSet(entry.getKey()));
             }
         }
 
-        return possibleCombinations;
+        frequentItemSet.put(k, frequentItemSets);
+        return frequentItemSets;
     }
-
-    private static Set<Set<Integer>> powerSet(Set<Integer> possibleItems, int k) {
-        Set<Set<Integer>> sets = new HashSet<>();
-
-        if (possibleItems.isEmpty()) {
-            sets.add(new HashSet<>());
-            return sets;
-        }
-
-        List<Integer> list = new ArrayList<Integer>(possibleItems);
-        int head = list.get(0);
-        Set<Integer> rest = new HashSet<Integer>(list.subList(1, list.size()));
-        for (Set<Integer> curSet : powerSet(rest, k)) {
-            Set<Integer> newSet = new HashSet<>();
-            newSet.add(head);
-            newSet.addAll(curSet);
-            sets.add(newSet);
-            sets.add(curSet);
-        }
-
-        return sets;
-    } */
 }
